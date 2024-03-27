@@ -18,7 +18,7 @@ import util
 from game import Agent, Directions
 from util import manhattanDistance
 
-
+# python pacman.py -p ReflexAgent -l testClassic
 class ReflexAgent(Agent):
     """
     A reflex agent chooses an action at each choice point by examining
@@ -75,10 +75,30 @@ class ReflexAgent(Agent):
         newGhostStates = successorGameState.getGhostStates()
         newScaredTimes = [ghostState.scaredTimer for ghostState in newGhostStates]
 
-        "*** YOUR CODE HERE ***"
-        return successorGameState.getScore()
-
-
+        "*** YOUR CODE HERE ***" 
+        Foodz = newFood.asList()
+        infinity = (float("inf"))
+        
+        ghostPos = successorGameState.getGhostPositions()
+        fDistance = []
+        gDistance = []
+        for food in Foodz:
+            fDistance.append(manhattanDistance(food, newPos)) 
+        for ghost in ghostPos:
+            gDistance.append(manhattanDistance(ghost, newPos))
+        
+        if currentGameState.getPacmanPosition() == newPos:
+            return -infinity
+        for dist in gDistance:
+            if dist <2:
+                return -infinity
+        if len(fDistance)==0:
+            return infinity
+        
+        return 99999/sum(fDistance) + 99999/len(fDistance)
+        # return successorGameState.getScore()
+        # python autograder.py -q q1 --no-graphics   
+    
 def scoreEvaluationFunction(currentGameState):
     """
     This default evaluation function just returns the score of the state.
@@ -140,27 +160,133 @@ class MinimaxAgent(MultiAgentSearchAgent):
         Returns whether or not the game state is a losing state
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        def minMax(gameState, index, depth=0):
+            
+            
+            numIndex = gameState.getNumAgents()-1
 
+            Act = None
+
+            if gameState.isLose() or gameState.isWin() or (depth ==self.depth):
+                return [self.evaluationFunction(gameState)]
+            elif index == numIndex:
+                depth +=1
+                childIndex = self.index
+            else:
+                childIndex = index + 1
+            # min
+            if index != 0:
+                min = float("inf")
+                for action in gameState.getLegalActions(index):
+                    succState = gameState.generateSuccessor(index, action)
+                    newMin = minMax(succState, childIndex, depth)[0]
+                    if newMin == min:
+                        if bool(random.getrandbits(1)):
+                            Act = action
+                    elif newMin < min:
+                        min = newMin
+                        Act = action
+                return min, Act
+            # max
+            else:
+                max = -float("inf") 
+                for action in gameState.getLegalActions(index):
+                    succState = gameState.generateSuccessor(index, action)
+                    newMax = minMax(succState, childIndex, depth)[0]
+                    if newMax == max:
+                        if bool(random.getrandbits(1)):
+                            Act = action
+                    elif newMax > max:
+                        max = newMax
+                        Act = action
+                return max, Act 
+        
+        bestScore, bestMove = minMax(gameState, self.index)  
+        return bestMove
+
+        # util.raiseNotDefined()
+        # python autograder.py -q q2 --no-graphics
+        # python autograder.py -q q2
 
 class AlphaBetaAgent(MultiAgentSearchAgent):
     """
     Your minimax agent with alpha-beta pruning (question 3)
     """
 
+    def max_value(self, gameState, agentIndex, depth, a, b):
+        depth+=1
+        if depth == self.depth or not gameState.getLegalActions(agentIndex) or gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+
+        actions = gameState.getLegalActions(agentIndex)
+        v = -float('Inf')
+
+        for action in actions:
+            successor = gameState.generateSuccessor(agentIndex, action)
+            v = max(v, self.min_value(successor, 1, depth, a, b))
+            if v > b:
+                return v
+            a = max(a, v)
+
+        return v
+
+    def min_value(self, gameState, agentIndex, depth, a, b):
+        if depth == self.depth or not gameState.getLegalActions(agentIndex) or gameState.isWin() or gameState.isLose():
+            return self.evaluationFunction(gameState)
+
+        actions = gameState.getLegalActions(agentIndex)
+        v = float('Inf')
+
+        for action in actions:
+            successor = gameState.generateSuccessor(agentIndex, action)
+            if agentIndex == gameState.getNumAgents()-1:
+                last_agent = True
+            else:
+                last_agent = False
+
+            if last_agent:
+                v = min(v, self.max_value(successor, 0, depth, a, b))
+            else:
+                v = min(v, self.min_value(successor, agentIndex+1, depth, a, b))
+
+            if v < a:
+                return v
+            b = min(b, v)
+
+        return v
+
     def getAction(self, gameState):
         """
-        Returns the minimax action using self.depth and self.evaluationFunction
+          Returns the minimax action using self.depth and self.evaluationFunction
         """
         "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        depth = 0
+        # alpha and beta 
+        a = -float('Inf') 
+        b = float('Inf')
+        values = []
+        agentIndex = self.index
+        pacmanActions = gameState.getLegalActions(agentIndex) 
+        print(pacmanActions)
+        for act in pacmanActions:
+            successor = gameState.generateSuccessor(agentIndex, act) 
+            values.append((self.min_value(successor, 1, depth, a, b), act))
+            #maxV = (maxEval, action)
+            maxV = max(values)
+            if maxV[0] > b:
+                return maxV[1]
+            a = max(a, maxV[0])
 
+        return maxV[1]
+
+        
+        util.raiseNotDefined()
+        # python autograder.py -q q3 --no-graphics
 
 class ExpectimaxAgent(MultiAgentSearchAgent):
     """
     Your expectimax agent (question 4)
     """
-
     def getAction(self, gameState):
         """
         Returns the expectimax action using self.depth and self.evaluationFunction
@@ -169,6 +295,7 @@ class ExpectimaxAgent(MultiAgentSearchAgent):
         legal moves.
         """
         "*** YOUR CODE HERE ***"
+        
         util.raiseNotDefined()
 
 
